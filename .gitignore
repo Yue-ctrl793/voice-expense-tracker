@@ -1,0 +1,18 @@
+# .gitignore
+
+.venv/
+venv/
+ENV/
+
+__pycache__/
+*.py[cod]
+.DS_Store
+
+
+.streamlit/secrets.toml
+
+*.pt
+*.bin
+
+temp_audio
+temp_audio_file

@@ -1,0 +1,32 @@
+[
+    {
+        "item": "Breakfast",
+        "amount": 5.0,
+        "category": "Food",
+        "date": "2025-11-22"
+    },
+    {
+        "item": "Lunch",
+        "amount": 12.0,
+        "category": "Food",
+        "date": "2025-11-22"
+    },
+    {
+        "item": "Coffee",
+        "amount": 5.0,
+        "category": "Food",
+        "date": "2025-11-22"
+    },
+    {
+        "item": "Computer Mouse",
+        "amount": 60.0,
+        "category": "Retail",
+        "date": "2025-11-22"
+    },
+    {
+        "item": "Keyboard",
+        "amount": 89.0,
+        "category": "Retail",
+        "date": "2025-11-22"
+    }
+]
