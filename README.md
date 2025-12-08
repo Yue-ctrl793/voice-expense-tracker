@@ -1,59 +1,58 @@
-# AI Voice Expense Tracker: Voice-to-Data Pipeline
+# Project Title: Voice Expense Tracker
 
 Live Demo: https://voice-expense-tracker-efjeqy7kjlpzxawubbpswd.streamlit.app/
 
-Short Description: A robust, multimodal application that transcribes user voice recordings of expenses using the local Whisper model and uses the DeepSeek LLM for structured data extraction and categorization.
+Short Description: An application that transcribes user voice recordings of expenses using the local Whisper model and uses the DeepSeek LLM for structured data extraction and categorization.
 
 ---
 
 ## What it Does
 
-This application functions as an intelligent voice-activated bookkeeping system. The user uploads an audio file (e.g., "Lunch was twenty-five dollars"). The system processes this audio using a two-stage pipeline: first, the local Whisper model converts the speech to text, and second, the DeepSeek Large Language Model (LLM) extracts the item, precise amount, and assigned category into a machine-readable JSON format. Users can review and edit the extracted data before committing it to a persistent session history, where it is visualized by category and filtered by time.
+The Voice Expense Tracker is an AI application designed to streamline personal finance management through natural language processing. Instead of manual data entry, the system allows users to simply speak their expenses (e.g., "I spent 25 dollars on lunch and 50 on groceries"), automatically converting raw audio into structured financial data. The application operates on a two-stage pipeline:
+First,  the system utilizes OpenAI's Whisper model to transcribe user audio. Second, the transcribed text is processed by the DeepSeek V3 Large Language Model. Unlike simple keyword matching, the LLM employs advanced reasoning to precisely extract entities and monetary amounts while intelligently mapping items to predefined categories. Beyond basic extraction, the model actively performs logic correction to resolve speech errors and enforces safety guardrails to filter out toxic or irrelevant content. Once processed, the data is presented in an editable review table for user to edit. Then the confirmed expenses are stored in a persistent session history and visualized through dynamic charts to provide immediate insights into spending habits.
 
 ---
 
 ## Quick Start
 
-This project requires Python 3.10+ and a stable internet connection for the DeepSeek API calls.
+The fastest way to test the application is via the live deployment: https://voice-expense-tracker-efjeqy7kjlpzxawubbpswd.streamlit.app/
+(No installation required. Works in your browser.)
 
-1.  **Clone the Repository:**
+To run locally:
+
+1.  **Clone the Install:**
     ```bash
-    git clone [https://github.com/Yue-ctr1793/voice-expense-tracker.git](https://github.com/Yue-ctr1793/voice-expense-tracker.git)
+    git clone https://github.com/Yue-ctrl793/voice-expense-tracker.git
     cd voice-expense-tracker
-    ```
-
-2.  **Setup Environment and Dependencies:**
-    ```bash
-    python3 -m venv .venv
-    source .venv/bin/activate
     pip install -r requirements.txt
     ```
-    *(Note: The first run will automatically download the Whisper 'small' model.)*
 
-3.  **Setup API Keys and System Binaries:**
-    * Ensure the system dependency **`ffmpeg`** is installed (handled via `packages.txt` on cloud deployment, may require `brew install ffmpeg` on macOS).
-    * Create a file named **`.streamlit/secrets.toml`** in the root directory and add your DeepSeek API key:
-        ```toml
-        DEEPSEEK_API_KEY = "sk-XXXXXXXXXXXXXXXX"
-        ```
+2.  **Configure Secrets:**
 
-4.  **Run the Application:**
+    Create a .streamlit/secrets.toml file and add your DeepSeek API Key:
+    ```bash
+    DEEPSEEK_API_KEY = "sk-72dffba7962240dab3ef69f92229d83e"
+    ```
+
+3.  **Run the Application:**
     ```bash
     streamlit run src/app.py
     ```
     The application will open in your web browser.
+
+    Note: Local execution requires FFmpeg to be installed on your system. For detailed installation instructions (Mac/Windows/Linux) and troubleshooting, please refer to SETUP.md.
 
 ---
 
 ## Video Links
 
 
-* **Project Demo (3-5 min):** [Link to YouTube/Vimeo Demo Video]
-* **Technical Walkthrough (5-10 min):** [Link to YouTube/Vimeo Technical Walkthrough Video]
+* **Project Demo:** [Link to YouTube/Vimeo Demo Video]
+* **Technical Walkthrough:** [Link to YouTube/Vimeo Technical Walkthrough Video]
 
 ---
 
-## ## Evaluation & Results
+## Evaluation & Results
 
 I employed a Dual-Stream Evaluation Strategy, isolating the reasoning capabilities of the LLM from the acoustic robustness of the Speech to Text model.
 
@@ -72,6 +71,44 @@ The evaluation was conducted in two distinct phases:
     * **Goal:** To test the full pipeline (Whisper Small + DeepSeek V3) in real-world scenarios.
     * **Metric:** I utilized Slot Accuracy (field-level correctness), Final JSON Accuracy (exact string match) and latency.
 
+### 2. Phase I Results (Quantitative and Qualitative)
+
+To evaluate the reasoning engine (DeepSeek V3) in isolation, I tested **1000 diverse synthetic scenarios** featuring complex logic, self-corrections (e.g., "Wait, no..."), and variable sentence structures.
+
+**Quantitative Results**
+
+| Metric | Result | Analysis |
+| :--- | :--- | :--- |
+| **Sample Size** | 1000 | Statistically significant volume. |
+| **Average Latency** | **2.95s** | High efficiency for a large language model. |
+| **Average Category Accuracy** | **88.94%** | **Excellent.** Indicates the model has strong semantic understanding and correctly maps items to their logical categories almost 90% of the time. |
+| **Average Slot Accuracy** | **80.58%** | **Good.** The model captures the majority of field-level details correctly. |
+| **Average Final JSON Accuracy** | **60.40%** | **Moderate.** The gap between Category Accuracy and Final Accuracy highlights the strictness of the exact-match metric. |
+
+**Error Analysis**
+
+To understand the nature of the 396 failure cases (where Final Accuracy < 100%), I developed a programmatic classifier to categorize errors into three distinct types.
+
+| Error Type | Count | Percentage | Impact Level |
+| :--- | :--- | :--- | :--- |
+| **Item String Mismatch (Logic Correct)** | 265 | 66.9% | Low |
+| **Category Classification Error** | 112 | 28.3% | Medium |
+| **Length Mismatch (Hallucination)** | 19 | 4.8% | High |
+
+**Key Insights**
+
+1.  **Dominance of Benign Errors (66.9%):**
+    The majority of recorded "failures" are merely string formatting differences (e.g., extracting "Apple" vs. "Red Apple") where the logic and category were actually correct.
+
+2.  **Wrong Categorization (28.3%):**
+    Category errors often stemmed from ambiguous items (e.g., classifying *Gift* as *Other* instead of *Retail*). Given the high overall Category Accuracy (88.94%), the model shows strong adherence to financial taxonomy, with errors largely falling into defensible ambiguity.
+
+3.  **Low Hallucination Rate (< 2%):**
+    Only 19 cases out of the full 1000 dataset (1.9%) resulted in missing or hallucinated items. This proves the system is reliable in capturing the correct number of transactions, which is critical for a bookkeeping application.
+
+**Conclusion:**
+Phase I confirms that DeepSeek V3 acts as a robust reasoning engine. The discrepancy between the high Category/Slot Accuracy and the lower Final Accuracy is primarily an artifact of strict string matching rather than a failure of logic.
+
 ### 3. Phase II Results (Quantitative)
 
 The full pipeline was tested on 50 diverse audio clips.
@@ -80,24 +117,28 @@ The full pipeline was tested on 50 diverse audio clips.
 | :--- | :--- | :--- |
 | **Average System Latency** | **3.83s** | Performance is acceptable for real-time user interaction. |
 | **Average Slot Accuracy** | **80.44%** | **High.** Indicates the system correctly identifies individual fields (Item/Amount) in the majority of cases, even if the full JSON structure is not a perfect match. |
+| **Average Category Accuracy**| **76.33%** | **High.** Shows that the LLM's reasoning and classification logic remains robust even when minor transcription errors occur. |
 | **Average Final JSON Accuracy** | **58.00%** | **Moderate.** The score is relatively lower, see failure analysis. |
+
 
 #### Performance by Category (Summary)
 
-The system demonstrated exceptional performance in **Safety (Guardrails)** and **Negative Constraints**, while noise robustness remains the primary area for improvement.
+The system demonstrated exceptional performance in **Safety (Guardrails)** and **Negative Constraints**, while noise robustness remains the primary area for improvement. Notably, complex logic tasks required significantly higher latency (4.78s) compared to quick safety rejections (2.86s).
 
-| Type | Slot Acc | Final JSON Acc | Count | Performance |
-| :--- | :--- | :--- | :--- | :--- |
-| **Guardrail_Toxic** | 1.00 | 1.00 | 4 | Perfect |
-| **Edge_Negative** | 1.00 | 1.00 | 3 | Perfect |
-| **Edge_Logic** | 0.86 | 0.50 | 8 | Good |
-| **Edge_Unit** | 0.87 | 0.60 | 5 | Good |
-| **Edge_Category** | 0.83 | 0.50 | 2 | Good |
-| **Normal** | 0.81 | 0.65 | 20 | Solid |
-| **Edge_Accent** | 0.67 | 0.00 | 2 | Challenging |
-| **Edge_Noise** | 0.47 | 0.17 | 6 | Weak Point |
+| Type | Slot Acc | Final JSON Acc | Latency (s) | Count | Performance |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Guardrail_Toxic** | 1.00 | 1.00 | 2.86s | 4 | Perfect |
+| **Edge_Negative** | 1.00 | 1.00 | 3.17s | 3 | Perfect |
+| **Edge_Unit** | 0.87 | 0.60 | 3.97s | 5 | Good |
+| **Edge_Logic** | 0.86 | 0.50 | 4.78s | 8 | Good |
+| **Edge_Category** | 0.83 | 0.50 | 3.24s | 2 | Good |
+| **Normal** | 0.81 | 0.65 | 3.76s | 20 | Solid |
+| **Edge_Accent** | 0.67 | 0.00 | 3.31s | 2 | Challenging |
+| **Edge_Noise** | 0.47 | 0.17 | 4.05s | 6 | Weak Point |
 
 ### 4. Qualitative Analysis
+
+The detailed failure table is in notebooks/evaluation.ipynb.
 
 #### Success Analysis: Model Strengths
 
