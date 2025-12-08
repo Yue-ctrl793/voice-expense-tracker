@@ -28,5 +28,17 @@
         "amount": 89.0,
         "category": "Retail",
         "date": "2025-11-22"
+    },
+    {
+        "item": "Flight to Paris",
+        "amount": 800.0,
+        "category": "Transport",
+        "date": "2025-12-07"
+    },
+    {
+        "item": "Hotel",
+        "amount": 450.0,
+        "category": "Entertainment",
+        "date": "2025-12-07"
     }
 ]

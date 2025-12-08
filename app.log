@@ -18,3 +18,5 @@
 2025-11-22 16:18:03,171 - INFO - Expense history successfully saved.
 2025-11-22 16:21:56,050 - INFO - HTTP Request: POST https://api.deepseek.com/chat/completions "HTTP/1.1 200 OK"
 2025-11-22 16:22:00,447 - INFO - Expense history successfully saved.
+2025-12-07 19:46:54,765 - INFO - HTTP Request: POST https://api.deepseek.com/chat/completions "HTTP/1.1 200 OK"
+2025-12-07 19:47:12,320 - INFO - Expense history successfully saved.

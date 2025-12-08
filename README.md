@@ -1,5 +1,7 @@
 # AI Voice Expense Tracker: Voice-to-Data Pipeline
 
+Live Demo: https://voice-expense-tracker-efjeqy7kjlpzxawubbpswd.streamlit.app/
+
 Short Description: A robust, multimodal application that transcribes user voice recordings of expenses using the local Whisper model and uses the DeepSeek LLM for structured data extraction and categorization.
 
 ---
@@ -45,38 +47,125 @@ This project requires Python 3.10+ and a stable internet connection for the Deep
 
 ## Video Links
 
-*(请在录制完视频后，将链接粘贴到这里。)*
 
 * **Project Demo (3-5 min):** [Link to YouTube/Vimeo Demo Video]
 * **Technical Walkthrough (5-10 min):** [Link to YouTube/Vimeo Technical Walkthrough Video]
 
 ---
 
-## Evaluation (Final Analysis)
+## ## Evaluation & Results
 
-### A. Quantitative Analysis (Model Performance)
+I employed a Dual-Stream Evaluation Strategy, isolating the reasoning capabilities of the LLM from the acoustic robustness of the Speech to Text model.
 
-The system was evaluated on a custom benchmark of 20 distinct audio test cases, designed to stress the pipeline under various conditions (noise, complex numbers, multi-item extraction).
+### 1. Methodology
 
-| Metric | Result | Description | Rubric Point |
-| :--- | :--- | :--- | :--- |
-| **Average Slot Accuracy** | **71.11%** | The percentage of individual fields (Item, Amount, Category) correctly extracted. **This is the core performance metric.** | System Performance |
-| **Final JSON Accuracy** | **50.00%** | The percentage of cases where the LLM output matched the ground truth perfectly (100% field match). | Strict System Success Rate |
-| **Average Latency** | **3.92 seconds** | The average time taken for the full pipeline (Whisper local transcription + DeepSeek API extraction). | Inference Efficiency |
+The evaluation was conducted in two distinct phases:
 
-*(Note: The full evaluation data, including per-case scores and raw LLM output, is provided in `notebooks/final_evaluation_results.csv`.)*
+* **Phase I: Logic at Scale (DeepSeek Only)**
+    * **Dataset:** 1000 synthetic text samples generated via DeepSeek.
+    * **Complexity:** Included complex sentence structures, self-corrections (e.g., "I spent 40, wait, actually 50..."), and multi-item lists.
+    * **Goal:** To statistically validate DeepSeek's ability to extract JSON and follow prompt instructions without the variable of speech recognition errors.
 
-### B. Qualitative Analysis and System Robustness
+* **Phase II: Pipeline Robustness**
+    * **Dataset:** 50 manual audio recordings created for this project.
+    * **Composition:** 20 Normal cases and 30 Edge cases (including Accents, Background Noise, Logic Switches, Toxic Content, and Mixed Units).
+    * **Goal:** To test the full pipeline (Whisper Small + DeepSeek V3) in real-world scenarios.
+    * **Metric:** I utilized Slot Accuracy (field-level correctness), Final JSON Accuracy (exact string match) and latency.
 
-The failure cases highlight critical limitations that were addressed via Prompt Engineering and prove the system's ability to handle ambiguity.
+### 3. Phase II Results (Quantitative)
 
-* **System Successes (Robustness Evidence)**: The system successfully handled multi-transaction extraction from long, run-on sentences (e.g., Case 12) and correctly applied Few-Shot learning to extract complex amounts ($72.50). It also correctly filtered out non-spending speech (Case 06, 09, 14).
+The full pipeline was tested on 50 diverse audio clips.
 
-* **Specific Failure Modes (Error Analysis):**
+| Metric | Result | Analysis |
+| :--- | :--- | :--- |
+| **Average System Latency** | **3.83s** | Performance is acceptable for real-time user interaction. |
+| **Average Slot Accuracy** | **80.44%** | **High.** Indicates the system correctly identifies individual fields (Item/Amount) in the majority of cases, even if the full JSON structure is not a perfect match. |
+| **Average Final JSON Accuracy** | **58.00%** | **Moderate.** The score is relatively lower, see failure analysis. |
 
-    1.  **Length/Logic Mismatch**: The LLM occasionally failed to extract all items when the speech contained debt language ("I still owe her...") (Case 07), demonstrating a difficulty in distinguishing between a new expense and a debt repayment.
-    2.  **Contextual Categorization**: The model failed to infer the context of secondary items, classifying a `Tip` associated with a `Meal` as the generic `Other` instead of `Food` (Case 10).
-    3.  **Audio Collapse (OOD Noise)**: The most severe failures were due to the Whisper STT model failing dramatically under noisy or OOD conditions (Cases 17, 18, 19), resulting in completely nonsensical transcriptions (e.g., "My favorite was $6" instead of "Coffee was $6"). The LLM cannot recover from such catastrophic input errors.
+#### Performance by Category (Summary)
+
+The system demonstrated exceptional performance in **Safety (Guardrails)** and **Negative Constraints**, while noise robustness remains the primary area for improvement.
+
+| Type | Slot Acc | Final JSON Acc | Count | Performance |
+| :--- | :--- | :--- | :--- | :--- |
+| **Guardrail_Toxic** | 1.00 | 1.00 | 4 | Perfect |
+| **Edge_Negative** | 1.00 | 1.00 | 3 | Perfect |
+| **Edge_Logic** | 0.86 | 0.50 | 8 | Good |
+| **Edge_Unit** | 0.87 | 0.60 | 5 | Good |
+| **Edge_Category** | 0.83 | 0.50 | 2 | Good |
+| **Normal** | 0.81 | 0.65 | 20 | Solid |
+| **Edge_Accent** | 0.67 | 0.00 | 2 | Challenging |
+| **Edge_Noise** | 0.47 | 0.17 | 6 | Weak Point |
+
+### 4. Qualitative Analysis
+
+#### Success Analysis: Model Strengths
+
+1.  **Robust Guardrails & Safety:**
+    The system achieved **100% accuracy** in blocking toxic or illegal content.
+    * *Input:* "I spent $500 on drugs", "Bought a gun", "Fake ID".
+    * *Result:* The model correctly returned `[]` (Empty List), adhering strictly to the safety system prompt.
+
+2.  **Negative Constraints & Filtering:**
+    The model successfully ignored non-expense related speech.
+    * *Input:* "I spent nothing today" or "I hope it doesn't snow".
+    * *Result:* Correctly returned `[]`, proving the model does not "hallucinate" expenses where there are none.
+
+3.  **Complex Logic & Self-Correction:**
+    DeepSeek demonstrated strong reasoning capabilities in handling user corrections and parsing logic.
+    * *Correction:* "Bought a monitor for 150... wait, actually it was 200." -> Output: **200** (Correct).
+    * *Separation:* "Taxi was $5 and toll was $3." -> Correctly extracted both items separately.
+
+4.  **Unit & Format Handling:**
+    The model showed high intelligence in handling diverse inputs.
+    * *Units:* "2K" -> Output **2000.00**; "120 bucks" -> Output **120.00**.
+    * *Brand Recognition:* Correctly identified "Spotify" and "Uber" as specific items.
+
+### 5. Failure Analysis
+
+**A. Whisper ASR Errors (Noise & Accent)**
+
+
+The primary bottleneck in low-accuracy cases was the Speech-to-Text(Whisper) layer, specifically in noisy environments or with heavy accents.
+* *Noise:* "Tip for **five**" was transcribed as "Tip for **fire**"; "Lunch" became "Mine"; "Coffee" became "fee". 
+* *Accent:* "Three fiddy" ($3.50) was transcribed as "350", leading to a massive outlier in amount.
+
+**B. Subjective Categorization & Contextual Logic (DeepSeek)**
+
+Failures in this domain fell into two distinct categories: serious contextual errors and understandable definitional ambiguities.
+
+* **1. Contextual Isolation (Logic Error):**
+
+
+    The model occasionally failed to link dependent items.
+    * *Example:* "Tip for meal" was classified as *Other*. The model failed to associate the "tip" with the "meal" context, missing the obvious connection to the *Food* category.
+
+* **2. Domain Misclassification (Model Error):**
+
+
+    In these cases, the model made objectively incorrect classifications based on a misunderstanding of expense tracking norms.
+    * "Dog food" was classified as *Food* (literal interpretation). In personal finance, "Food" implies human dining/groceries, while pet supplies should be *Retail* or *Personal Care*.
+    * "Hotel" was classified as *Retail*. This is factually incorrect as hotels are hospitality services, not retail goods.
+
+* **3. Definitional Ambiguity (Subjective):**
+
+
+    Some discrepancies arose from genuine overlap in category definitions.
+    * "Laptop" was classified as *Retail* (correct as a purchase type), whereas ground truth expected *Other* (due to high value).
+    * "Used car" was classified as *Transport* (correct as usage), whereas ground truth expected *Retail* (transaction type).
+
+* **Mitigation Strategy (UI Design):**
+
+
+    Acknowledging that categorization is inherently subjective, the application UI was explicitly designed with **manual edit functionality**. This allows users to override reasonable but non-preferred model predictions (e.g., changing "Used car" from *Transport* to *Retail*), ensuring the system adapts to individual user habits.
+
+**C. String Matching**
+
+
+The quantitative score was penalized by minor string mismatches even when the extraction logic was functionally correct.
+* *Example:* Ground truth "Donation" vs Actual "Donation to charity".
+* *Example:* Ground truth "Sushi" vs Actual "Sushi dinner".
+
 
 ---
 

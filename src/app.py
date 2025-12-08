@@ -1,5 +1,4 @@
 import streamlit as st
-import whisper
 import os
 from openai import OpenAI
 import json
@@ -8,8 +7,13 @@ import logging
 import datetime
 import toml
 import time 
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# --- 0. Production-Grade: Logging Setup & Constants ---
+from models.audio_model import load_whisper_model
+from models.llm_prompts import get_system_prompt
+
+# Logging Setup & Constants 
 logging.basicConfig(
     filename='app.log', 
     level=logging.INFO, 
@@ -24,9 +28,8 @@ INAPPROPRIATE_KEYWORDS = [
     "abuse", "harm", "weapon", "drug", "racism", "sexually explicit"
 ]
 
-# --- 1. Setup & Secrets ---
-# FIX: Changed 'icon=' (unsupported) to 'page_icon=' (supported)
-st.set_page_config(page_title="AI Expense Tracker Pro", page_icon="💰", layout="wide") 
+# Setup & Secrets 
+st.set_page_config(page_title="AI Expense Tracker", layout="wide") 
 
 # Load DeepSeek API Key
 DEEPSEEK_API_KEY = st.secrets.get("DEEPSEEK_API_KEY") 
@@ -37,12 +40,9 @@ if not DEEPSEEK_API_KEY:
 llm_client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
 
 
-# --- 3. Helper Functions ---
-@st.cache_resource
-def load_whisper_model():
-    logging.info("Loading Whisper model...")
-    return whisper.load_model("small")
+model = load_whisper_model("small")
 
+# Helper Functions 
 def load_expense_history():
     """Reads expense history from the JSON file."""
     if os.path.exists(EXPENSE_FILE):
@@ -66,35 +66,7 @@ def save_expense_history(history):
 
 def extract_expenses_with_few_shot(text):
     categories_list = st.session_state.categories
-    # The Prompt dynamically updates with user-added categories
-    system_prompt = f"""
-    You are an expert expense tracking assistant.
-    Your task is to extract item, amount, and category from the user's input.
-
-    CRITICAL GUARDRAIL: DO NOT respond to any queries that are off-topic, political, personal advice, harmful, violent, explicit, or non-expense related. If the input is not about expenses, you MUST output an empty JSON list: [].
-    
-    You MUST choose a category from this list: {', '.join(categories_list)}.
-    If the expense is clear, such as "Electronics" or "Gifts", but is not in the list, use 'Retail'.
-    If an appropriate category is not found, use 'Other'.
-
-    Before outputting the final JSON, follow these steps:
-    1. Analyze the user's speech and correct any obvious transcription errors (e.g., 'black for instance' -> 'breakfast').
-    2. Extract all transactions.
-    3. Output the result ONLY in the specified JSON format.
-    
-    Here are examples (Few-Shot Learning):
-    Input: "I took a taxi for 15.50 and grabbed a snack for 12.00."
-    Output: [{{"item": "Taxi", "amount": 15.50, "category": "Transport"}}, {{"item": "Snack", "amount": 12.00, "category": "Food"}}]
-
-    Input: "Paid my electricity bill, it was 88 dollars."
-    Output: [{{"item": "Electricity Bill", "amount": 88.0, "category": "Bills"}}]
-
-    Input: "I didn't spend anything today, just went home."
-    Output: []
-
-    Now, process the user's input below.
-    Output ONLY the raw, valid JSON list based on the examples. DO NOT include any introductory text, concluding remarks, or markdown code blocks (like ```json).
-    """
+    system_prompt = get_system_prompt(categories_list)
     
     try:
         response = llm_client.chat.completions.create(
@@ -110,8 +82,6 @@ def extract_expenses_with_few_shot(text):
         logging.error(f"LLM Call failed: {e}")
         return "[]"
 
-# --- 2. Context Management: Session State  ---
-
 if 'expense_history' not in st.session_state:
     st.session_state.expense_history = load_expense_history()
 if 'categories' not in st.session_state:
@@ -121,20 +91,17 @@ if 'pending_df' not in st.session_state:
 
 
 
-# --- 4. UI Components (Sidebar & Main App) ---
+# UI Components (Sidebar & Main App) 
 
-# R4: Clean title with no unnecessary icons
 st.title("AI Voice Expense Pipeline")
 st.markdown("---") 
 
 # --- SIDEBAR: Category Management ---
 with st.sidebar:
-    # FIX: Removed icon="gear" to fix TypeError
     st.header("Settings & Categories") 
     
     st.subheader("Current Categories")
     for cat in st.session_state.categories:
-        # R3: Simple text list is cleaner and error-free
         st.caption(f"— {cat}") 
     st.markdown("---")
     
@@ -177,7 +144,7 @@ with col1:
                     transcription = result["text"]
                     os.remove("temp_audio")
                     
-                    st.info(f"📝 **Transcribed Text:** {transcription}")
+                    st.info(f" **Transcribed Text:** {transcription}")
 
                     is_inappropriate = False
                     lower_transcription = transcription.lower()
