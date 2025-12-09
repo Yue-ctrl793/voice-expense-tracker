@@ -51,7 +51,7 @@ To run locally:
 
 
 * **Project Demo:** https://duke.box.com/s/z25re319cqnq4yyua5p1xzve2skbeyy2
-* **Technical Walkthrough:** https://duke.box.com/s/nb67mggz5p8fh2ht6aj7uel3usg01vyh
+* **Technical Walkthrough:** https://duke.box.com/s/xve0tvlwjm9v7yjj2dck5s35tef041lr
 
 ---
 

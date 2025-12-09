@@ -43,7 +43,7 @@ llm_client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com
 model_type = st.sidebar.selectbox(
     "Select Whisper Model", 
     ["base", "small","medium"], 
-    index=2  # base by default to save memory
+    index=0  # base by default to save memory
 )
 
 model = load_whisper_model(model_type)
