@@ -167,6 +167,8 @@ The detailed failure table is in notebooks/evaluation.ipynb.
 
 ### 5. Failure Analysis
 
+The detailed table displaying all failure cases is in evaluation.ipynb.
+
 **A. Whisper ASR Errors (Noise & Accent)**
 
 
