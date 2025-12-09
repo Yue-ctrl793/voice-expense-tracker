@@ -1,8 +1,9 @@
 import whisper
 import streamlit as st
 
+# AI generated: google gemini 2
 @st.cache_resource
-def load_whisper_model(model_size="small"):
+def load_whisper_model(model_size="base"):
     """
     Loads and caches the Whisper model to prevent reloading on every interaction.
     Args:

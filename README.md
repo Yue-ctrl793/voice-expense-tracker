@@ -15,8 +15,11 @@ First,  the system utilizes OpenAI's Whisper model to transcribe user audio. Sec
 
 ## Quick Start
 
+
 The fastest way to test the application is via the live deployment: https://voice-expense-tracker-efjeqy7kjlpzxawubbpswd.streamlit.app/
 (No installation required. Works in your browser.)
+
+Note on Resource Limits: The live demo is hosted on the Streamlit Community Cloud (Free Tier). Due to memory constraints, I choose the Whisper base model. For high-fidelity transcription using the small or medium models, running the application locally is recommended (see SETUP.md).
 
 To run locally:
 
@@ -47,8 +50,8 @@ To run locally:
 ## Video Links
 
 
-* **Project Demo:** [Link to YouTube/Vimeo Demo Video]
-* **Technical Walkthrough:** [Link to YouTube/Vimeo Technical Walkthrough Video]
+* **Project Demo:** https://duke.box.com/s/z25re319cqnq4yyua5p1xzve2skbeyy2
+* **Technical Walkthrough:** https://duke.box.com/s/nb67mggz5p8fh2ht6aj7uel3usg01vyh
 
 ---
 
@@ -125,16 +128,16 @@ The full pipeline was tested on 50 diverse audio clips.
 
 The system demonstrated exceptional performance in **Safety (Guardrails)** and **Negative Constraints**, while noise robustness remains the primary area for improvement. Notably, complex logic tasks required significantly higher latency (4.78s) compared to quick safety rejections (2.86s).
 
-| Type | Slot Acc | Final JSON Acc | Latency (s) | Count | Performance |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Guardrail_Toxic** | 1.00 | 1.00 | 2.86s | 4 | Perfect |
-| **Edge_Negative** | 1.00 | 1.00 | 3.17s | 3 | Perfect |
-| **Edge_Unit** | 0.87 | 0.60 | 3.97s | 5 | Good |
-| **Edge_Logic** | 0.86 | 0.50 | 4.78s | 8 | Good |
-| **Edge_Category** | 0.83 | 0.50 | 3.24s | 2 | Good |
-| **Normal** | 0.81 | 0.65 | 3.76s | 20 | Solid |
-| **Edge_Accent** | 0.67 | 0.00 | 3.31s | 2 | Challenging |
-| **Edge_Noise** | 0.47 | 0.17 | 4.05s | 6 | Weak Point |
+| Type | Slot Acc | Category Acc | Final JSON Acc | Latency (s) | Count | Performance |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Guardrail_Toxic** | 1.00 | 1.00 | 1.00 | 2.86s | 4 | Perfect |
+| **Edge_Negative** | 1.00 | 1.00 | 1.00 | 3.17s | 3 | Perfect |
+| **Edge_Unit** | 0.87 | 0.80 | 0.60 | 3.97s | 5 | Good |
+| **Edge_Logic** | 0.86 | 0.65 | 0.50 | 4.78s | 8 | Good |
+| **Edge_Category** | 0.83 | 1.00 | 0.50 | 3.24s | 2 | Good |
+| **Normal** | 0.81 | 0.75 | 0.65 | 3.76s | 20 | Solid |
+| **Edge_Accent** | 0.67 | 1.00 | 0.00 | 3.31s | 2 | Challenging |
+| **Edge_Noise** | 0.47 | 0.50 | 0.17 | 4.05s | 6 | Weak Point |
 
 ### 4. Qualitative Analysis
 
@@ -206,6 +209,17 @@ Failures in this domain fell into two distinct categories: serious contextual er
 The quantitative score was penalized by minor string mismatches even when the extraction logic was functionally correct.
 * *Example:* Ground truth "Donation" vs Actual "Donation to charity".
 * *Example:* Ground truth "Sushi" vs Actual "Sushi dinner".
+
+### 6. Overall Conclusion
+
+* The results confirm that the Reasoning Engine (DeepSeek V3) is highly reliable, achieving high accuracy in categorization. The primary bottleneck is not the LLM's logic, but the **ASR (Whisper Small) sensitivity** to environmental noise.
+
+* While the strict "Final JSON Accuracy" sits around 60%, the high **Slot Accuracy (~80%)** indicates that the system is functionally viable. In the vast majority of cases, the user receives a correct extraction that requires zero or minimal editing, reducing the friction of manual data entry.
+
+
+* The specific failures in subjective categorization (e.g., *Hotel* as *Retail* vs. *Other*) validate the design decision to include **Human-in-the-Loop** editing in the UI. Since personal finance taxonomies are inherently subjective, a fully automated system is less desirable than an intelligent assistant that proposes high-confidence defaults.
+
+* Moving forward, the system's robustness could be significantly improved by integrating a Voice Activity Detection layer to pre-filter noise or by fine-tuning the ASR model on accented financial speech.
 
 
 ---

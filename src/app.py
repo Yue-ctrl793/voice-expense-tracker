@@ -40,7 +40,13 @@ if not DEEPSEEK_API_KEY:
 llm_client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
 
 
-model = load_whisper_model("small")
+model_type = st.sidebar.selectbox(
+    "Select Whisper Model", 
+    ["base", "small","medium"], 
+    index=2  # base by default to save memory
+)
+
+model = load_whisper_model(model_type)
 
 # Helper Functions 
 def load_expense_history():
@@ -90,10 +96,10 @@ if 'pending_df' not in st.session_state:
     st.session_state.pending_df = None
 
 
-
+# AI generated: google gemini 2
 # UI Components (Sidebar & Main App) 
 
-st.title("AI Voice Expense Pipeline")
+st.title("AI Voice Expense Tracker")
 st.markdown("---") 
 
 # --- SIDEBAR: Category Management ---
@@ -145,7 +151,8 @@ with col1:
                     os.remove("temp_audio")
                     
                     st.info(f" **Transcribed Text:** {transcription}")
-
+                    
+                    # Pre-LLM Keyword Filter
                     is_inappropriate = False
                     lower_transcription = transcription.lower()
                     for keyword in INAPPROPRIATE_KEYWORDS:
@@ -164,13 +171,13 @@ with col1:
                             st.session_state.pending_df = pd.DataFrame(pending_list)
                         else:
                     
-                            st.warning("No clear expenses detected, or input was non-expense related (LLM Guardrail likely triggered).") 
+                            st.warning("No clear expenses detected, or Transcription contains inappropriate or sensitive content.") 
                             
                 except Exception as e:
                     st.error(f"Error during processing: {e}")
                     logging.error(f"Processing error: {e}")
 
-
+# AI generated: google gemini 2
 # --- CONFIRMATION AND EDITING AREA ---
 if st.session_state.pending_df is not None and not st.session_state.pending_df.empty:
     with col1:
@@ -205,7 +212,7 @@ if st.session_state.pending_df is not None and not st.session_state.pending_df.e
             st.success(f"History updated! {len(exp_list_to_save)} transaction(s) saved.")
             st.rerun()
 
-
+# # AI generated: google gemini 2
 # --- COLUMN 2: Analytics and Filtering ---
 with col2:
     st.header("History & Analytics")
